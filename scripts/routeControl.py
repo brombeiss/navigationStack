@@ -9,26 +9,32 @@ import math
 import time
 
 
+
+# Function for getting the distance via theorem of pythagoras plus calculating the angel between x-axis and hypotnenuse
 def cart2pol(x, y):
     rho = np.sqrt(x**2 + y**2)
     phi = math.degrees(np.arctan2(y, x))
     return(rho, phi)
 
-def sensor2cart(x,y):  # translate x,y data from lidar to our own coordinate system
+
+# Translate x,y data from lidar to my own coordinate system
+def sensor2cart(x,y):
     return(y,-x)
 
+
+# Because the angels are given as quaternions by the topic /poseupdate from hector_slam, they have to be converted to angels in degree
 def quaternion2degrees(yaw):
     yaw_in_degrees = - math.degrees(np.arcsin(yaw)*2)
     return yaw_in_degrees
 
 
-
+# Getting information about current position and orientation 
 def callback(msg):
     global x0
     global y0
     global yaw0
     global callbackReady
-    x = msg.pose.pose.position.x  #because of different frame systems from realworld and lidar, the actual output from /poseupdate is switched
+    x = msg.pose.pose.position.x 
     y = msg.pose.pose.position.y
     yaw = msg.pose.pose.orientation.z
     (x0,y0) = sensor2cart(x,y)
@@ -52,7 +58,6 @@ def sendCommand(message,argument):
 def listener():
     
     rospy.Subscriber("/poseupdate", PoseWithCovarianceStamped, callback)
-    rospy.loginfo("...Running")
     finish = False
     commandoMessage = ""
     rate.sleep()
@@ -60,20 +65,20 @@ def listener():
     while not finish:
         now = int(time.time())
         rospy.loginfo("Time: "+ str(now)+" "+str(starttime))
-        if (now - starttime > 15 ):
+        if (now - starttime > 15 ): # Shutdown after a given time
             finish = True
         
         if (callbackReady):
-            # Build Delta 
+            # Build Delta of current point and point of destination
             dx = x1 - x0
             dy = y1 - y0
-            (rho,phi) = cart2pol(dx,dy) #Conversion to Polarcoordinate-System
+            (rho,phi) = cart2pol(dx,dy) # Conversion to Polarcoordinate-System
             distance = rho
-            yaw1 = 90.0 - phi 
-            dyaw = yaw1-yaw0
+            yaw1 = 90.0 - phi # Actual angle by which the car has to be rotated
+            dyaw = yaw1-yaw0 # Current angle by which the car has to be rotated
+            # Output of information about position and distance/angel which has to be made
             rospy.loginfo("yaw0: "+ str(int(yaw0))+" yaw1: "+ str(int(yaw1))+" dyaw: "+ str(int(dyaw))+ " distance "+format(distance, '.2f'))
             rospy.loginfo("x0: "+ format(x0, '.2f')+" y0: "+format(y0, '.2f'))
-            #if commandoMessage == "":
             commandoMessage = ""
             # TURN
             if abs(dyaw) > 10.0: #Tolerance
@@ -97,7 +102,7 @@ def listener():
                 commandoArgument = 0
                 sendCommand(commandoMessage,commandoArgument)
             # TARGET REACHED
-            if distance < 0.05:
+            if distance < 0.05: # Tolerance
                 finish = True
 
     sendCommand("SHUTDOWN",0)
