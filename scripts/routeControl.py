@@ -7,7 +7,11 @@ from rostest.msg import Command1
 import numpy as np
 import math
 import time
+import pyrealsense2 as rs
 
+
+def get_time():
+    return int(time.time())
 
 
 # Function for getting the distance via theorem of pythagoras plus calculating the angel between x-axis and hypotnenuse
@@ -54,6 +58,32 @@ def sendCommand(message,argument):
 
 
 
+def check4Collision():
+    global const_frame,const_clipping_frame,const_min_depth
+    global pipeline
+
+    frames = pipeline.wait_for_frames()
+    depth = frames.get_depth_frame()
+   
+    depth_image = np.asanyarray(depth.get_data())
+    depth_without_zero = np.ma.masked_array(depth_image,mask=depth_image==0)
+
+    min_dist = np.amin(depth_without_zero)
+    if min_dist <= const_min_depth:
+        index = np.where(depth_without_zero == min_dist)
+        xvalues = index[0]
+        yvalues = index[1]
+        # Check if the min. dist is in the cutted camera frame
+        for i in range(0, len(xvalues),1):
+            x = xvalues[i]
+            y = yvalues[i]
+            if x >= const_clipping_frame[0][0]:
+                if x <= const_clipping_frame[1][0]:
+                    if y >= const_clipping_frame[0][1]:
+                        if y <= const_clipping_frame[1][1]:
+                            return True
+    return False
+
 
 def listener():
     
@@ -61,11 +91,12 @@ def listener():
     finish = False
     commandoMessage = ""
     rate.sleep()
-    starttime = int(time.time())
+    suspend_turn_until = get_time()
+    starttime = get_time()
     while not finish:
-        now = int(time.time())
+        now = get_time()
         rospy.loginfo("Time: "+ str(now)+" "+str(starttime))
-        if (now - starttime > 15 ): # Shutdown after a given time
+        if (now - starttime > 25 ): # Shutdown after a given time
             finish = True
         
         if (callbackReady):
@@ -81,19 +112,26 @@ def listener():
             rospy.loginfo("x0: "+ format(x0, '.2f')+" y0: "+format(y0, '.2f'))
             commandoMessage = ""
             # TURN
-            if abs(dyaw) > 10.0: #Tolerance
-                if (dyaw >= 0):
-                    commandoMessage = "RIGHT"
-                    commandoArgument = int(abs(999))
-                else:
-                    commandoMessage = "LEFT"
-                    commandoArgument = int(abs(dyaw)) 
+            if ( now > suspend_turn_until ):
+                if abs(dyaw) > 10.0: #Tolerance
+                    if (dyaw >= 0):
+                        commandoMessage = "RIGHT"
+                        commandoArgument = int(abs(999))
+                    else:
+                        commandoMessage = "LEFT"
+                        commandoArgument = int(abs(999)) 
             # FORWARD
-            if commandoMessage != "RIGHT" and commandoMessage != "LEFT":
-                if abs(distance) > 0.1:
-                    commandoMessage = "FORWARD"
-                    commandoArgument = 0
-                    sendCommand(commandoMessage,commandoArgument)
+            collision = check4Collision()
+            if collision == True:
+                sendCommand("RIGHT_BY_DEGREES",45)
+                time.sleep(2)
+                suspend_turn_until = now + 5   # No turn for the next 5 seconds
+            else:
+                if commandoMessage != "RIGHT" and commandoMessage != "LEFT":
+                    if abs(distance) > 0.1:
+                        commandoMessage = "FORWARD"
+                        commandoArgument = 0
+                        sendCommand(commandoMessage,commandoArgument)
             # NO COMMAND SO FAR -> STOP
             if commandoMessage != "":
                 sendCommand(commandoMessage,commandoArgument)
@@ -113,6 +151,23 @@ if __name__ == '__main__':
     rospy.init_node('routeControl', anonymous=True)
     pub = rospy.Publisher('command', Command1, queue_size=10)
     rate = rospy.Rate(10) # 10hz
+
+    # DEPTH CONTROL
+    ##Parameter
+    const_frame = (640,480)
+    const_min_depth = 200
+    const_clipping_frame = [(160,120),(480,360)]  # Half dimension of camera frame
+    ## Create a context object. This object owns the handles to all connected realsense devices
+    pipeline = rs.pipeline()
+    ## Configure streams
+    configCamera = rs.config()
+    configCamera.enable_stream(rs.stream.depth, const_frame[0], const_frame[1], rs.format.z16, 30)
+
+    ## Start streaming
+    pipeline.start(configCamera)
+
+
+    # MAIN
     callbackReady = False
     oldMessage = ""
     # Starting Position
@@ -121,7 +176,7 @@ if __name__ == '__main__':
     yaw0 = 0.0
     # Destination
     x1 = 1.0
-    y1 = 1.5
+    y1 = 2.0
 
     try:
         listener()
