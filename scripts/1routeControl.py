@@ -175,8 +175,8 @@ if __name__ == '__main__':
     y0 = 0.0
     yaw0 = 0.0
     # Destination
-    x1 = 1.0
-    y1 = 1.5
+    x1 = 0.0
+    y1 = 2.0
 
     try:
         listener()

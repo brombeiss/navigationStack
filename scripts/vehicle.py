@@ -10,13 +10,13 @@ from roboCar import Car
 def callback(data):
   rospy.loginfo("Callback vehicle.py "+data.message)
   if data.message == 'FORWARD' :
-    car.forward(speed=0.4)
+    car.forward(speed=0.3)
   elif data.message == 'BACKWARD':
     car.backward(speed=0.3)
   elif data.message == 'LEFT':
-    car.left(speed=0.55)
+    car.left(speed=0.4)
   elif data.message == 'RIGHT':
-    car.right(speed=0.55)
+    car.right(speed=0.4)
   elif data.message == 'RIGHT_BY_DEGREES':
     car.right_by_degrees(data.argument)
   elif data.message == 'LEFT_BY_DEGREES':
