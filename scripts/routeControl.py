@@ -123,9 +123,9 @@ def listener():
             # FORWARD
             collision = check4Collision()
             if collision == True:
-                sendCommand("RIGHT_BY_DEGREES",90)
+                sendCommand("RIGHT_BY_DEGREES",60)
                 time.sleep(2)
-                suspend_turn_until = now + 3   # No turn for the next 5 seconds
+                suspend_turn_until = now + 3   # No turn for the next seconds
             else:
                 if commandoMessage != "RIGHT" and commandoMessage != "LEFT":
                     if abs(distance) > 0.1:
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     # DEPTH CONTROL
     ##Parameter
     const_frame = (640,480)
-    const_min_depth = 170
+    const_min_depth = 161
     const_clipping_frame = [(160,120),(480,360)]  # Half dimension of camera frame
     ## Create a context object. This object owns the handles to all connected realsense devices
     pipeline = rs.pipeline()
@@ -175,7 +175,7 @@ if __name__ == '__main__':
     y0 = 0.0
     yaw0 = 0.0
     # Destination
-    x1 = 1.0
+    x1 = 0.0
     y1 = 1.5
 
     try:

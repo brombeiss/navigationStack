@@ -76,11 +76,11 @@ class Car():
     self.pwm[0].ChangeDutyCycle(self.left_speed)
     self.pwm[1].ChangeDutyCycle(self.right_speed)
   def right_by_degrees(self,angle):
-    self.right(0.4)
+    self.right(0.45)
     time.sleep(angle/45.0*0.7)
     self.stop()
   def left_by_degrees(self,angle):
-    self.left(0.4)
+    self.left(0.45)
     time.sleep(angle/45.0*0.7)
     self.stop()
   def shutdown(self):

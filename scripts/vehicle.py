@@ -14,9 +14,9 @@ def callback(data):
   elif data.message == 'BACKWARD':
     car.backward(speed=0.3)
   elif data.message == 'LEFT':
-    car.left(speed=0.4)
+    car.left(speed=0.45)
   elif data.message == 'RIGHT':
-    car.right(speed=0.4)
+    car.right(speed=0.45)
   elif data.message == 'RIGHT_BY_DEGREES':
     car.right_by_degrees(data.argument)
   elif data.message == 'LEFT_BY_DEGREES':
